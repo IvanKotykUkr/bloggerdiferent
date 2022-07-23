@@ -1,6 +1,10 @@
 import * as QueryString from "querystring";
-import {ObjectId} from "mongodb";
+import {ObjectId, WithId} from "mongodb";
+export type BloggerDBType=WithId<{
+    name: string,
+    youtubeUrl: string,
 
+}>
 export type BloggerType = {
     _id?: ObjectId,
     name: string,
@@ -9,8 +13,8 @@ export type BloggerType = {
 export type BloggerPayloadType = Omit<BloggerResponseType, 'id'>
 export type BloggerResponseType = {
     id: ObjectId | undefined | string,
-    name: string,
-    youtubeUrl: string,
+    name: string|undefined,
+    youtubeUrl: string|undefined,
 }
 export type PaginationType<T> = {
     pagesCount: number,

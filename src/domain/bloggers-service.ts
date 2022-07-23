@@ -30,7 +30,7 @@ export const bloggersService = {
         if (idHex.length !== 48) {
             return null
         }
-        let blogger: BloggerResponseType | null = await bloggersRepositories.findBloggersById(id)
+        let blogger: BloggerResponseType | null = await bloggersRepositories.findBloggersById(new ObjectId(id))
         if (blogger) {
             return blogger;
         }
@@ -42,12 +42,8 @@ export const bloggersService = {
             name: name,
             youtubeUrl: youtubeUrl
         }
-        await bloggersRepositories.createBlogger(newBlogger)
-        return {
-            id: newBlogger._id,
-            name: newBlogger.name,
-            youtubeUrl: newBlogger.youtubeUrl
-        }
+        const  result =await bloggersRepositories.createBlogger(newBlogger)
+        return result
     },
     async updateBloggers(id: string, name: string, youtubeUrl: string): Promise<boolean> {
         const idHex: string = await this.convertToHex(id)

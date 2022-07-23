@@ -1,6 +1,6 @@
-import {bloggerCollection} from "./db";
+import {BloggerModelClass} from "./db";
 import {InsertOneResult, ObjectId, WithId} from "mongodb";
-import {BloggerResponseType, BloggerType} from "../types/blogger-type";
+import {BloggerDBType, BloggerResponseType, BloggerType} from "../types/blogger-type";
 
 const projectionBlogger = {
     _id: 0,
@@ -20,61 +20,73 @@ export const bloggersRepositories = {
     },
     async blooggersSeachCount(name: string | null): Promise<number> {
         const filter = await this.paginationFilter(name)
-        return await bloggerCollection.countDocuments(filter)
+        return BloggerModelClass.countDocuments(filter)
 
     },
 
     async getBloggersSearchTerm(size: number, number: number, name: string | null): Promise<BloggerResponseType[]> {
         const filter = await this.paginationFilter(name)
 
-        const bloggers = await bloggerCollection.find(filter)
+        const bloggers = await BloggerModelClass.find(filter)
             .skip((number - 1) * size)
             .limit(size)
-            .project(projectionBlogger)
-            .toArray()
+            .lean()
 
-        return bloggers.map(d => ({id: d.id, name: d.name, youtubeUrl: d.youtubeUrl}))
+
+        return bloggers.map(d => ({id: d._id, name: d.name, youtubeUrl: d.youtubeUrl}))
     },
 
 
-    async findBloggersById(id: string): Promise<BloggerResponseType | null> {
+    async findBloggersById(id: ObjectId): Promise<BloggerResponseType | null> {
+        const blogger = await BloggerModelClass.findById(id);
 
-        const blogger = await bloggerCollection.findOne({_id: new ObjectId(id)},
-            {
-                projection: projectionBlogger
-            })
         if (blogger) {
+
             return {id: blogger.id, name: blogger.name, youtubeUrl: blogger.youtubeUrl}
         }
         return null;
     },
 
 
-    async createBlogger(newBlogger: BloggerType): Promise<InsertOneResult<BloggerType>> {
+    async createBlogger(newBlogger: BloggerType): Promise<BloggerResponseType> {
+        const bloggerInstance = new BloggerModelClass()
+        bloggerInstance._id = new ObjectId()
+        bloggerInstance.name = newBlogger.name
+        bloggerInstance.youtubeUrl = newBlogger.youtubeUrl
+        await bloggerInstance.save()
 
+        //sconst result = await BloggerModelClass.create(newBlogger)
 
-        const result: InsertOneResult<BloggerType> = await bloggerCollection.insertOne(newBlogger)
-
-        return result
+        return {id: bloggerInstance._id, name: bloggerInstance.name, youtubeUrl: bloggerInstance.youtubeUrl}
 
     },
     async updateBloggers(blogger: BloggerType): Promise<boolean> {
+        const bloggerInstance = await BloggerModelClass.findById(blogger._id)
+        if (!bloggerInstance) return false
 
-        const result = await bloggerCollection.updateOne({_id: new ObjectId(blogger._id)}, {
-            $set: {
-                name: blogger.name,
-                youtubeUrl: blogger.youtubeUrl
-            }
-        })
+        bloggerInstance.name = blogger.name
+        bloggerInstance.youtubeUrl = blogger.youtubeUrl
+        await bloggerInstance.save()
+
+        //    const result = await BloggerModelClass.updateOne({_id: new ObjectId(blogger._id)}, {
+        //  name: blogger.name,
+        //   youtubeUrl: blogger.youtubeUrl
+
+        //})
 
 
-        return result.matchedCount === 1
+        return true
 
     },
     async deleteBloggers(id: string): Promise<boolean> {
+        const bloggerInstance = await BloggerModelClass.findById(id)
+        if (!bloggerInstance) return false
 
-        const result = await bloggerCollection.deleteOne({_id: new ObjectId(id)})
-        return result.deletedCount === 1
+        await bloggerInstance.deleteOne()
+
+      //  const result = await BloggerModelClass.deleteOne({_id: new ObjectId(id)})
+        //return result.deletedCount === 1
+        return true
     },
 
 
